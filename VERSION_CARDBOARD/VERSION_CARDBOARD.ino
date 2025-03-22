@@ -155,9 +155,6 @@ void read_board() {
   }
 }
 
-
-
-
 // Reads the mux indicated by mux_num. Only reads the 
 // output channel indicated by channel
 int read_mux(int mux_num, int channel) {
@@ -198,49 +195,3 @@ void guess_colors(int guesses[NUM_ROWS][NUM_LEDS]) {
     }
   }
 }
-
-// void guess_colors(int guesses[]) {
-
-//   // Initialize min_R2 with a very large value
-//   for (int i = 0; i < NUM_LEDS; i++) {
-//       min_R2[i] = FLT_MAX;
-//   }
-
-//   for (int led_idx = 0; led_idx < NUM_LEDS; led_idx++) {
-//     float curr_R2 = 0;
-//     for (int color_idx = 0; color_idx < NUM_COLORS; color_idx++) {
-//       float red_base = RGB_AVG[led_idx][color_idx][0];
-//       float green_base = RGB_AVG[led_idx][color_idx][1];
-//       float blue_base = RGB_AVG[led_idx][color_idx][2];
-
-//       curr_R2 = pow((red_sig[led_idx] - red_base), 2) +
-//                 pow((green_sig[led_idx]-green_base), 2) +
-//                 pow((blue_sig[led_idx]-blue_base), 2);
-
-//       if (curr_R2 < min_R2[led_idx]) {
-//         min_R2[led_idx] = curr_R2;
-//         guesses[led_idx] = color_idx;
-//       }
-
-
-//     }
-//   }
-
-//   for (int i = 0; i < NUM_LEDS; i++) {
-//     if (tot_sig[i] <= OPEN_THRESHOLD) {
-//       guesses[i] = 6;  //open square
-//     }
-//     // else if ((guesses[i] == 4 || guesses[i] == 3) && tot_sig[i] < 300) {
-//     //     guesses[i] = 5; // if total brightness is too dark to be white or yellow, this is black
-//     // }
-//     // else if ((guesses[i] == 5 || guesses[i] == 3) && tot_sig[i] > 600) {
-//     //   guesses[i] = 4; // if total brightness is too light to be black or yellow, this is white
-//     // }
-//     // else if ((guesses[i] == 4 || guesses[i] == 5) && (tot_sig[i] > 300 && tot_sig[i] < 600)) {
-//     //   guesses[i] = 3;
-//     // }
-
-//     // ^^ THIS STUFF WAS TO TELL BLACK, YELLOW, AND WHITE APART IN THE BIG BOARD
-//     // IT DIDN'T REALLY WORK
-//   }
-// }
