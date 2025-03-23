@@ -86,6 +86,8 @@ class Game:
         # if two pieces moved at the same time, there was castling
         if len(from_idx) == 2 and len(to_idx) == 2:
             print("castling")
+            self._handle_castling(from_idx, to_idx)
+            return
 
         # if there are otherwise two "to" positions, we have en passant
         if len(to_idx) == 2:
@@ -126,6 +128,43 @@ class Game:
             self.curr_values[from_idx[0][0]][from_idx[0][1]]
         self.curr_values[taken[0]][taken[1]] = '0'
         self.curr_values[from_idx[0][0]][from_idx[0][1]] = '0'
+
+    def _handle_castling(self, from_idx, to_idx):
+        """
+        Handles game states in which castling is detected (two pieces moved
+        at once)
+        :param from_idx: indices from where pieces moved
+        :param to_idx: indices pieces moved to
+        :return: nothing, just updates self.curr_values
+        """
+        # castling follows the following pattern:
+        # highest from -> lowest to
+        # lowest from -> highest to
+
+        # getting lowest from, highest from
+        if from_idx[0][0] < from_idx[1][0]:
+            lowest_from = from_idx[0]
+            highest_from = from_idx[1]
+        else:
+            lowest_from = from_idx[1]
+            highest_from = from_idx[0]
+        #getting lowest to, highest to
+        if to_idx[0][0] < to_idx[1][0]:
+            lowest_to = to_idx[0]
+            highest_to = to_idx[1]
+        else:
+            lowest_to = to_idx[1]
+            highest_to = to_idx[0]
+
+        #updating game state in self.curr_values
+        self.curr_values[lowest_to[0]][lowest_to[1]] = \
+            self.curr_values[highest_from[0]][highest_from[1]]
+        self.curr_values[highest_to[0]][highest_to[1]] = \
+            self.curr_values[lowest_from[0]][lowest_from[1]]
+        self.curr_values[highest_from[0]][highest_from[1]] = '0'
+        self.curr_values[lowest_from[0]][lowest_from[1]] = '0'
+
+
 
 def find_arduino():
     """
