@@ -30,6 +30,8 @@ while True:
         print("PREVIOUS TEAMS:\t", game.prev_teams)
         print("TRANS MATRIX:\t", transition)
         print("CURR_VALUES:\t", game.curr_values)
+        print(f"HALFTURN COUNT:\t{game.halfturn_count}")
+        print(f"LAST TAKE:\t{game.halfturn_count - game.last_take} moves ago")
         #
 
         game.prev_teams = [row[:] for row in game.curr_teams]
