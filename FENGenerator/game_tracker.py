@@ -22,13 +22,12 @@ class Game:
         # GAME INFO
         self.done_reading = False
         self.halfturn_count = 0
+        self.last_take = 0
         # CASTLING AVAILABILITY
         self.black_king_castle_allowed = True
         self.black_queen_castle_allowed = True
         self.white_king_castle_allowed = True
         self.white_queen_castle_allowed = True
-
-
 
     def read_teams(self):
         """
@@ -73,6 +72,9 @@ class Game:
                 square = transition[row][col]
                 if square == 0:
                     continue
+                if square == 2 or square == -2:
+                    self.last_take = self.halfturn_count
+
                 if self.halfturn_count % 2 == 0: #if it is black's turn
                     if square == 1:
                         from_idx.append((row, col))
