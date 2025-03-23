@@ -83,11 +83,49 @@ class Game:
         if len(from_idx) == 0 or len(to_idx) == 0:
             print("No change in game state detected")
             return
+        # if two pieces moved at the same time, there was castling
+        if len(from_idx) == 2 and len(to_idx) == 2:
+            print("castling")
+
+        # if there are otherwise two "to" positions, we have en passant
+        if len(to_idx) == 2:
+            print("en passant")
+            self._handle_en_passant(from_idx, to_idx)
+            return
+
         # update the piece locations
         self.curr_values[to_idx[0][0]][to_idx[0][1]] = \
             self.curr_values[from_idx[0][0]][from_idx[0][1]]
         self.curr_values[from_idx[0][0]][from_idx[0][1]] = '0'
 
+    def _handle_en_passant(self, from_idx, to_idx):
+        """
+        This function handles the game state updates whenever there
+        are any en passant movements
+        :param from_idx: the detected indices from where pieces moved
+        :param to_idx: the detected indices for where pieces moved to
+        :return: nothing
+        """
+        if self.halfturn_count % 2 == 0:    # if it is black's turn
+            # if black took with en passant, want to go towards row 0
+            if to_idx[0][0] < to_idx[1][0]:
+                taking = to_idx[0]
+                taken = to_idx[1]
+            else:
+                taking = to_idx[1]
+                taken = to_idx[0]
+        else:                               # if it is white's turn
+            if to_idx[0][0] > to_idx[1][0]:
+                taking = to_idx[0]
+                taken = to_idx[1]
+            else:
+                taking = to_idx[1]
+                taken = to_idx[0]
+        # updating the game state
+        self.curr_values[taking[0]][taking[1]] = \
+            self.curr_values[from_idx[0][0]][from_idx[0][1]]
+        self.curr_values[taken[0]][taken[1]] = '0'
+        self.curr_values[from_idx[0][0]][from_idx[0][1]] = '0'
 
 def find_arduino():
     """
@@ -118,8 +156,3 @@ while True:
         #
 
         game.prev_teams = [row[:] for row in game.curr_teams]
-
-
-
-
-
