@@ -1,6 +1,6 @@
 #include <FastLED.h>
 #include<float.h>
-#include "calibration.h"
+#include "averages.h"
 
 // right now this is set up to work with the small board with just 4 squares
 
@@ -8,16 +8,23 @@
 #define NUM_LEDS 8  //LEDs per row
 #define LED_TYPE WS2812B
 #define NUM_COLORS 6 //red, green, blue, yellow, white, black
-#define NUM_ROWS  2
-#define OPEN_THRESHOLD 250
-#define CLOCK_PIN 2 // pin for the chess clock button
+#define NUM_ROWS  8
+#define CLOCK_PIN 13 // pin for the chess clock button
 
-int mux_pins[NUM_ROWS] = {A0, A1};
+float OPEN_THRESHOLD[NUM_ROWS][NUM_LEDS] = {0};
+
+int mux_pins[NUM_ROWS] = {A0, A1, A8, A9, A10, A11, A12, A13};
 
 int mux_chan_pins[NUM_ROWS][3] =
   {
     {8,9,10},
-    {11,12,13}
+    {31,29,27},
+    {34,36,38},
+    {40,42,44},
+    {46,48,50},
+    {51,49,47},
+    {45,43,41},
+    {39,37,35}
   };
 
 CRGB leds[NUM_LEDS];
@@ -49,29 +56,78 @@ void setup() {
       pinMode(mux_chan_pins[i][j], OUTPUT);
     }
   }
+  for (int k = 0; k < 10; k++)
+  {
+    read_board();
+    for (int i = 0; i < NUM_ROWS; i++) {
+      for (int j = 0; j < NUM_LEDS; j++) {
+        OPEN_THRESHOLD[i][j] += tot_sig[i][j];
+      }
+    }
+  }
+  //Serial.println("CALIBRATION DONE, OPEN THRESHOLD: ");
+  for (int i = 0; i < NUM_ROWS; i++) {
+      for (int j = 0; j < NUM_LEDS; j++) {
+        OPEN_THRESHOLD[i][j] = OPEN_THRESHOLD[i][j]/10;
+        // Serial.print(OPEN_THRESHOLD[i][j]);
+        // Serial.print("   ");
+      }
+      //Serial.println();
+  }
   pinMode(CLOCK_PIN, INPUT_PULLUP);
 }
 
 void loop() {
   if (digitalRead(CLOCK_PIN) == LOW) {
-    read_board();  // Read all rows of LDR values
+    int guesses[4][NUM_ROWS][NUM_LEDS];
+    int final_guesses[NUM_ROWS][NUM_LEDS];
 
-    int guesses[NUM_ROWS][NUM_LEDS];  // Array to store guessed colors
-    guess_colors(guesses);  // Call the function
+    // Perform 4 board reads and color guesses
+    for (int r = 0; r < 4; r++) {
+      read_board();
+      guess_colors(guesses[r]);
+    }
 
-    // Print the guessed colors
+    // Majority vote across 4 guesses
     for (int i = 0; i < NUM_ROWS; i++) {
       for (int j = 0; j < NUM_LEDS; j++) {
-        Serial.print(guesses[i][j]);
-        //Serial.print(tot_sig[i][j]);
-        
+        int count_pos = 0;
+        int count_neg = 0;
+        int count_zero = 0;
+
+        for (int r = 0; r < 4; r++) {
+          if (guesses[r][i][j] == 1) count_pos++;
+          else if (guesses[r][i][j] == -1) count_neg++;
+          else count_zero++;
+        }
+
+        // Determine the most frequent guess
+        if (count_pos >= count_neg && count_pos >= count_zero) {
+          final_guesses[i][j] = 1;
+        } else if (count_neg >= count_pos && count_neg >= count_zero) {
+          final_guesses[i][j] = -1;
+        } else {
+          final_guesses[i][j] = 0;
+        }
+      }
+    }
+
+    // Print the final guesses
+    for (int i = 0; i < NUM_ROWS; i++) {
+      for (int j = 0; j < NUM_LEDS; j++) {
+        Serial.print(final_guesses[i][j]);
         Serial.print("   ");
       }
       Serial.println();
     }
-    
-    //delay(1000);  // Wait before the next loop iteration
-    Serial.println("---------------------------");
+    // for (int i = 0; i < NUM_ROWS; i++) {
+    //   for (int j = 0; j < NUM_LEDS; j++) {
+    //     Serial.print(tot_sig[i][j]);
+    //     Serial.print("   ");
+    //   }
+    //   Serial.println();
+    // }
+    Serial.println("---");
   }
 }
 
@@ -167,9 +223,6 @@ int read_mux(int mux_num, int channel) {
   digitalWrite(mux_chan_pins[mux_num][1], s1);
   digitalWrite(mux_chan_pins[mux_num][2], s2);
 
-  // small delay for signals to settle
-  delay(10);
-
   return analogRead(mux_pins[mux_num]);
   
 }
@@ -177,21 +230,17 @@ int read_mux(int mux_num, int channel) {
 void guess_colors(int guesses[NUM_ROWS][NUM_LEDS]) {
   for (int rows = 0; rows < NUM_ROWS; rows++) {
     for (int leds = 0; leds < NUM_LEDS; leds++) {
-      float blue_r2 = pow((red_sig[rows][leds] - RGB_AVG[1][0]), 2) +
-                      pow((green_sig[rows][leds] - RGB_AVG[1][1]), 2) +
-                      pow((blue_sig[rows][leds] - RGB_AVG[1][2]), 2);
-      float red_r2 = pow((red_sig[rows][leds] - RGB_AVG[0][0]), 2) +
-                     pow((green_sig[rows][leds] - RGB_AVG[0][1]), 2) +
-                     pow((blue_sig[rows][leds] - RGB_AVG[0][2]), 2);
-      if (red_r2 < blue_r2) {
-        guesses[rows][leds] = -1;
-      }
-      else {
+      float black_diff = pow(tot_sig[rows][leds] - black_avg[rows][leds], 2);
+      float white_diff = pow(tot_sig[rows][leds] - white_avg[rows][leds], 2);
+      
+      if (white_diff < black_diff)
         guesses[rows][leds] = 1;
-      }
-      if (tot_sig[rows][leds] < OPEN_THRESHOLD) {
+      else
+        guesses[rows][leds] = -1;
+
+      if (tot_sig[rows][leds] < OPEN_THRESHOLD[rows][leds] + 50)
         guesses[rows][leds] = 0;
-      }
+      
     }
   }
 }
